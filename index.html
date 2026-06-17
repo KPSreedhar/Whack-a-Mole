@@ -4,142 +4,569 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whack-a-Mole</title>
     <style>
-        *{
-    margin: 0;
-    padding: 0;
-}
-html, body{
-    height: 100%;
-}
-body{
-    font-family: Arial, Helvetica, sans-serif;
-    background-color: rgb(58, 129, 0);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-}
-.score{
-    font-size: 4em;
-    margin-bottom: .5em;
-}
-.board{
-    height: 600px;
-    width: 600px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 80px;
-}
-.hole{
-    background-color: rgb(221, 144, 71);
-    border-radius: 50%;
-    box-shadow: inset 0 10px 0 7px rgb(184, 112, 78);
-    position: relative;
-    overflow: hidden;
-}
-.hole .mole{
-    width: 70%;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0;
-    animation: rise 0.3s ease-out;
-}
-@keyframes rise {
-    0%{
-        transform: translateX(-50%) translateY(100%);
-    }
-    100%{
-        transform: translateX(-50%) translateY(0);
-    }
-}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-.cursor{
-    height: 110px;
-    width: 100px;
-    position: absolute;
-    top: 100px;
-    left: 100px;
-    background-image: url('assets/hammer.png');
-    background-size: 100% 100%;
-    transform: translate(-20%, -20%);
-    transition: transform .1s;
-    pointer-events: none;
-}
-.cursor.active{
-    transform: translate(-20%, -20%) rotate(-50deg);
-}
+        html, body {
+            height: 100%;
+            font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+        }
 
+        /* ─── SCREENS ─── */
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .screen.active { display: flex; }
+
+        /* ─── LANDING PAGE ─── */
+        #landing {
+            background: radial-gradient(ellipse at top, #3a8100 0%, #1e4600 100%);
+            color: #fff;
+            gap: 32px;
+        }
+
+        .game-title {
+            font-size: 3.8em;
+            letter-spacing: 2px;
+            text-shadow: 0 4px 0 rgba(0,0,0,0.35);
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .game-title span {
+            color: #ffe44d;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.75;
+            letter-spacing: 1px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.08);
+            border: 1.5px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(6px);
+            border-radius: 20px;
+            padding: 36px 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            min-width: 360px;
+        }
+
+        /* Timer setting */
+        .field-label {
+            font-size: 0.85em;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: 0.65;
+            align-self: flex-start;
+            margin-bottom: -16px;
+        }
+
+        .timer-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .timer-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 1.4em;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .timer-btn:hover { background: rgba(255,255,255,0.25); }
+        .timer-btn:active { transform: scale(0.9); }
+
+        .timer-display {
+            font-size: 2.4em;
+            font-weight: bold;
+            color: #ffe44d;
+            min-width: 80px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .timer-presets {
+            display: flex;
+            gap: 10px;
+        }
+
+        .preset-btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1.5px solid rgba(255,255,255,0.3);
+            background: transparent;
+            color: rgba(255,255,255,0.75);
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover, .preset-btn.selected {
+            background: rgba(255,228,77,0.2);
+            border-color: #ffe44d;
+            color: #ffe44d;
+        }
+
+        /* Sound toggle */
+        .sound-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .sound-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1em;
+        }
+        .sound-icon { font-size: 1.3em; }
+
+        .toggle-wrap {
+            position: relative;
+            width: 52px;
+            height: 28px;
+        }
+        .toggle-wrap input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            border-radius: 28px;
+            background: rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle-track::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            top: 4px;
+            left: 4px;
+            transition: transform 0.3s;
+        }
+        .toggle-wrap input:checked + .toggle-track {
+            background: #4ade80;
+        }
+        .toggle-wrap input:checked + .toggle-track::before {
+            transform: translateX(24px);
+        }
+
+        /* Start button */
+        .start-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, #ffe44d, #ffc107);
+            color: #1e4600;
+            font-size: 1.2em;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.25), 0 0 20px rgba(255,228,77,0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .start-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 rgba(0,0,0,0.25), 0 0 28px rgba(255,228,77,0.4); }
+        .start-btn:active { transform: translateY(2px); box-shadow: 0 3px 0 rgba(0,0,0,0.25); }
+
+        /* ─── GAME SCREEN ─── */
+        #game {
+            background-color: rgb(58, 129, 0);
+            color: #fff;
+            overflow: hidden;
+            cursor: none;
+            gap: 16px;
+            position: relative;
+        }
+
+        .hud {
+            display: flex;
+            gap: 48px;
+            align-items: center;
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.1;
+        }
+
+        .hud-label {
+            font-size: 0.75em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.65;
+        }
+
+        .hud-value {
+            font-size: 2.8em;
+            font-weight: bold;
+        }
+
+        #time-left.urgent { color: #ff5e5e; animation: pulse 0.5s infinite alternate; }
+        @keyframes pulse { from { opacity: 1; } to { opacity: 0.4; } }
+
+        .board {
+            height: 560px;
+            width: 560px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 70px;
+        }
+
+        .hole {
+            background-color: rgb(221, 144, 71);
+            border-radius: 50%;
+            box-shadow: inset 0 10px 0 7px rgb(184, 112, 78);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hole .mole {
+            width: 70%;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 0;
+            animation: rise 0.3s ease-out;
+            cursor: none;
+        }
+
+        @keyframes rise {
+            0%   { transform: translateX(-50%) translateY(100%); }
+            100% { transform: translateX(-50%) translateY(0); }
+        }
+
+        .cursor {
+            height: 110px;
+            width: 100px;
+            position: fixed;
+            pointer-events: none;
+            background-image: url('assets/hammer.png');
+            background-size: 100% 100%;
+            transform: translate(-20%, -20%);
+            transition: transform .1s;
+            z-index: 999;
+        }
+        .cursor.active { transform: translate(-20%, -20%) rotate(-50deg); }
+
+        /* ─── END SCREEN ─── */
+        #endscreen {
+            background: radial-gradient(ellipse at top, #3a8100 0%, #1e4600 100%);
+            color: #fff;
+            gap: 28px;
+        }
+
+        .result-title {
+            font-size: 2.5em;
+            text-shadow: 0 4px 0 rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .final-score-box {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,228,77,0.5);
+            border-radius: 20px;
+            padding: 32px 64px;
+            text-align: center;
+        }
+
+        .final-score-label {
+            font-size: 0.85em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        .final-score-value {
+            font-size: 5em;
+            color: #ffe44d;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .end-buttons {
+            display: flex;
+            gap: 14px;
+        }
+
+        .btn-play-again {
+            padding: 14px 36px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #ffe44d, #ffc107);
+            color: #1e4600;
+            font-size: 1.05em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.25);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn-play-again:hover { transform: translateY(-2px); }
+        .btn-play-again:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.25); }
+
+        .btn-change-settings {
+            padding: 14px 36px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.35);
+            background: transparent;
+            color: #fff;
+            font-size: 1.05em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-change-settings:hover { background: rgba(255,255,255,0.1); }
     </style>
-    <title>Wack a Mole</title>
 </head>
 <body>
-    <h1 class="score">Points: <span>00</span></h1>
-    <div class="board">
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="hole"></div>
-        <div class="hole"></div>
+
+    <!-- ── LANDING / SETUP SCREEN ── -->
+    <div id="landing" class="screen active">
+        <p class="game-title">🔨 Whack-a-<span>Mole</span></p>
+        <p class="subtitle">HOW LONG CAN YOU KEEP UP?</p>
+
+        <div class="card">
+
+            <p class="field-label">Game Duration</p>
+
+            <div class="timer-row">
+                <button class="timer-btn" id="decrease">−</button>
+                <div class="timer-display"><span id="time-setting">30</span>s</div>
+                <button class="timer-btn" id="increase">+</button>
+            </div>
+
+            <div class="timer-presets">
+                <button class="preset-btn" data-val="15">15s</button>
+                <button class="preset-btn selected" data-val="30">30s</button>
+                <button class="preset-btn" data-val="60">60s</button>
+                <button class="preset-btn" data-val="90">90s</button>
+            </div>
+
+            <div class="sound-row">
+                <div class="sound-label">
+                    <span class="sound-icon" id="sound-icon">🔊</span>
+                    <span>Sound Effects</span>
+                </div>
+                <label class="toggle-wrap">
+                    <input type="checkbox" id="sound-toggle" checked>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
+
+            <button class="start-btn" id="start-btn">START GAME</button>
+        </div>
     </div>
-    <div class="cursor"></div>
+
+    <!-- ── GAME SCREEN ── -->
+    <div id="game" class="screen">
+        <div class="hud">
+            <div class="hud-item">
+                <span class="hud-label">Score</span>
+                <span class="hud-value" id="score-display">0</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Time</span>
+                <span class="hud-value" id="time-left">30</span>
+            </div>
+        </div>
+
+        <div class="board" id="board">
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+        </div>
+
+        <div class="cursor" id="cursor"></div>
+    </div>
+
+    <!-- ── END SCREEN ── -->
+    <div id="endscreen" class="screen">
+        <p class="result-title" id="result-title">⏱ Time's Up!</p>
+        <div class="final-score-box">
+            <p class="final-score-label">Final Score</p>
+            <p class="final-score-value" id="final-score">0</p>
+        </div>
+        <div class="end-buttons">
+            <button class="btn-play-again" id="play-again">Play Again</button>
+            <button class="btn-change-settings" id="change-settings">Change Settings</button>
+        </div>
+    </div>
 
     <script>
-        const cursor = document.querySelector('.cursor')
-const holes = [...document.querySelectorAll('.hole')]
-const scoreEl = document.querySelector('.score span')
-let score = 0
+        // ─── State ───────────────────────────────────────────
+        let gameDuration = 30;
+        let soundEnabled = true;
+        let score = 0;
+        let timeLeft = 30;
+        let gameRunning = false;
+        let countdownInterval = null;
+        let moleTimeout = null;
 
-const sound = new Audio("assets/smash.mp3")
-run()
-function run(){
-    const i = Math.floor(Math.random() * holes.length)
-    const hole = holes[i]
-    let timer = null
+        const sound = new Audio("assets/smash.mp3");
 
-    const img = document.createElement('img')
-    img.classList.add('mole')
-    img.src = 'assets/mole.png'
+        // ─── Screens ─────────────────────────────────────────
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
 
-    img.addEventListener('click', () => {
-        score += 10
-        sound.play()
-        scoreEl.textContent = score
-        img.src = 'assets/mole-whacked.png'
-        clearTimeout(timer)
-        setTimeout(() => {
-            hole.removeChild(img)
-            run()
-        }, 500)
-    })
+        // ─── Landing: Timer Setting ───────────────────────────
+        const timeSettingEl = document.getElementById('time-setting');
+        const presetBtns = document.querySelectorAll('.preset-btn');
 
-    hole.appendChild(img)
+        function setDuration(val) {
+            gameDuration = Math.max(10, Math.min(120, val));
+            timeSettingEl.textContent = gameDuration;
+            presetBtns.forEach(btn => {
+                btn.classList.toggle('selected', parseInt(btn.dataset.val) === gameDuration);
+            });
+        }
 
-    timer = setTimeout(() => {
-        hole.removeChild(img)
-        run()
-    }, 1000)
-}
+        document.getElementById('decrease').addEventListener('click', () => setDuration(gameDuration - 5));
+        document.getElementById('increase').addEventListener('click', () => setDuration(gameDuration + 5));
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => setDuration(parseInt(btn.dataset.val)));
+        });
 
+        // ─── Landing: Sound Toggle ────────────────────────────
+        const soundToggle = document.getElementById('sound-toggle');
+        const soundIcon = document.getElementById('sound-icon');
 
-window.addEventListener('mousemove', e => {
-    cursor.style.top = e.pageY + 'px'
-    cursor.style.left = e.pageX + 'px'
-})
-window.addEventListener('mousedown', () => {
-    cursor.classList.add('active')
-})
-window.addEventListener('mouseup', () => {
-    cursor.classList.remove('active')
-})
+        soundToggle.addEventListener('change', () => {
+            soundEnabled = soundToggle.checked;
+            soundIcon.textContent = soundEnabled ? '🔊' : '🔇';
+        });
+
+        // ─── Start Game ───────────────────────────────────────
+        document.getElementById('start-btn').addEventListener('click', startGame);
+
+        function startGame() {
+            score = 0;
+            timeLeft = gameDuration;
+            gameRunning = true;
+
+            document.getElementById('score-display').textContent = 0;
+            document.getElementById('time-left').textContent = timeLeft;
+            document.getElementById('time-left').classList.remove('urgent');
+
+            // Clear any leftover moles
+            document.querySelectorAll('.hole').forEach(h => h.innerHTML = '');
+
+            showScreen('game');
+
+            // Countdown
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                const timeEl = document.getElementById('time-left');
+                timeEl.textContent = timeLeft;
+                if (timeLeft <= 5) timeEl.classList.add('urgent');
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+
+            spawnMole();
+        }
+
+        // ─── Mole Logic ───────────────────────────────────────
+        const holes = [...document.querySelectorAll('.hole')];
+        let lastHole = null;
+
+        function randomHole() {
+            const available = holes.filter(h => h !== lastHole);
+            const h = available[Math.floor(Math.random() * available.length)];
+            lastHole = h;
+            return h;
+        }
+
+        function spawnMole() {
+            if (!gameRunning) return;
+
+            const hole = randomHole();
+            const img = document.createElement('img');
+            img.classList.add('mole');
+            img.src = 'assets/mole.png';
+
+            img.addEventListener('click', () => {
+                if (!gameRunning) return;
+                score += 10;
+                document.getElementById('score-display').textContent = score;
+                if (soundEnabled) {
+                    sound.currentTime = 0;
+                    sound.play();
+                }
+                img.src = 'assets/mole-whacked.png';
+                clearTimeout(moleTimeout);
+                setTimeout(() => {
+                    if (hole.contains(img)) hole.removeChild(img);
+                    spawnMole();
+                }, 400);
+            });
+
+            hole.appendChild(img);
+
+            moleTimeout = setTimeout(() => {
+                if (hole.contains(img)) hole.removeChild(img);
+                spawnMole();
+            }, 900);
+        }
+
+        // ─── End Game ─────────────────────────────────────────
+        function endGame() {
+            gameRunning = false;
+            clearInterval(countdownInterval);
+            clearTimeout(moleTimeout);
+            document.querySelectorAll('.hole').forEach(h => h.innerHTML = '');
+
+            document.getElementById('final-score').textContent = score;
+
+            const msg = score >= 100 ? '🏆 Incredible!' : score >= 50 ? '🎉 Nice Work!' : '😄 Keep Practicing!';
+            document.getElementById('result-title').textContent = msg;
+
+            showScreen('endscreen');
+        }
+
+        // ─── End Screen Buttons ───────────────────────────────
+        document.getElementById('play-again').addEventListener('click', startGame);
+        document.getElementById('change-settings').addEventListener('click', () => showScreen('landing'));
+
+        // ─── Custom Cursor ────────────────────────────────────
+        const cursor = document.getElementById('cursor');
+
+        document.getElementById('game').addEventListener('mousemove', e => {
+            cursor.style.top = e.clientY + 'px';
+            cursor.style.left = e.clientX + 'px';
+        });
+
+        document.getElementById('game').addEventListener('mousedown', () => cursor.classList.add('active'));
+        document.getElementById('game').addEventListener('mouseup', () => cursor.classList.remove('active'));
     </script>
 </body>
 </html>
