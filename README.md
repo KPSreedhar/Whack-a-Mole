@@ -12,9 +12,9 @@ A fun and interactive browser-based Whack-a-Mole game built with vanilla HTML, C
 
 ## 📸 Preview
 
-<p align="center">
+<p align="center" styles="width:40px">
   <a href="https://kpsreedhar.github.io/Whack-a-Mole/" target="_blank">
-    <img src="assets/mole.png" alt="Whack-a-Mole Game Preview" width="500">
+    <img src="assets/mole.png" alt="Whack-a-Mole Game Preview" width="200">
   </a>
 </p>
 
@@ -97,7 +97,7 @@ npx live-server
 
 ## 🙌 Credits
 
-Developed by **Sreedhar (Suriya)**
+Developed by **Sreedhar**
 🎓 BCA Student
 💻 IT Support Intern
 🚀 Aspiring Software Developer
